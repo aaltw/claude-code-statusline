@@ -1,33 +1,75 @@
 # claude-code-statusline
 
-A two-line [Claude Code](https://claude.ai/code) statusline in [Catppuccin Mocha](https://github.com/catppuccin/catppuccin) with powerline arrows.
+A [Claude Code](https://claude.ai/code) statusline in [Catppuccin Mocha](https://github.com/catppuccin/catppuccin) with powerline arrows.
 
 ## What it shows
 
-**Line 1 — AI metrics**
+**Left side — Workspace**
 ```
-󰧑 Sonnet 4.6  ↑15.2k ↓1.8k ~8.7k  ████░░░░░░ 42%/200k
-```
-- Model name (strips the "Claude " prefix)
-- Token breakdown: input `↑`, output `↓`, cached `~`
-- Context bar: 10-char block progress, color-coded green → yellow → red at 70% / 90%
-- Context size: shows your actual window limit (200k or 1M)
-- `⚡ COMPACT` warning when context hits 85%+
-
-**Line 2 — Workspace**
-```
- feature/auth ✦ ↑3                              ~/projects/myapp
+ feature/auth ✦ ↑3   +42 -7
 ```
 - Git branch + dirty indicator `✦`, commits ahead `↑` / behind `↓` upstream (cached 5s)
-- Current directory right-aligned, `~`-prefixed, truncated to `…/parent/dir` if long
+- Lines added/removed in the session
 
-## Requirements
+**Right side — AI metrics**
+```
+ 42%/1M ▓▓▓▓▒▒▒▒▒▒▒ ↑15.2k/120.5k ↓1.8k/22.0k ~8.7k  Opus 4.6
+```
+- Context usage percentage + window size (200k or 1M)
+- Progress bar: color-coded green / yellow / red at 70% / 90%
+- Token breakdown: input `↑` (current/total), output `↓` (current/total), cached `~`
+- Model name (strips "Claude " prefix)
+- `⚡ COMPACT` warning when context hits 85%+
 
-- [Nerd Fonts](https://www.nerdfonts.com/) in your terminal (for the powerline arrows and `󰧑` icon)
-- `jq`
-- `git` (optional, for the branch segment)
+Adapts to a two-line layout when the terminal is too narrow.
 
-## Install
+## Versions
+
+### Go (recommended)
+
+Compiled binary with faster startup and no runtime dependencies beyond `git`.
+
+#### Install from release
+
+Download the binary for your platform from [Releases](https://github.com/aaltw/claude-code-statusline/releases):
+
+```bash
+# macOS Apple Silicon
+curl -L -o ~/.claude/statusline-bin \
+  https://github.com/aaltw/claude-code-statusline/releases/latest/download/statusline-bin-darwin-arm64
+chmod +x ~/.claude/statusline-bin
+```
+
+#### Build from source
+
+```bash
+git clone https://github.com/aaltw/claude-code-statusline.git
+cd claude-code-statusline
+make install
+```
+
+Or manually:
+
+```bash
+cd go && go build -ldflags "-s -w" -o ~/.claude/statusline-bin .
+```
+
+#### Configure
+
+Add to `~/.claude/settings.json`:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline-bin"
+  }
+}
+```
+
+### Bash (lightweight)
+
+Shell script with no build step. Requires `jq`.
 
 ```bash
 curl -o ~/.claude/statusline.sh \
@@ -35,7 +77,7 @@ curl -o ~/.claude/statusline.sh \
 chmod +x ~/.claude/statusline.sh
 ```
 
-Then add to `~/.claude/settings.json`:
+Add to `~/.claude/settings.json`:
 
 ```json
 {
@@ -46,9 +88,62 @@ Then add to `~/.claude/settings.json`:
 }
 ```
 
+## Tmux window icons
+
+The `hooks/claude-tmux-status.sh` script sets tmux window name icons to show Claude Code's state:
+
+| Icon | State |
+|------|-------|
+| `○`  | Idle / waiting for input |
+| `◐`  | Working (tool use / notification) |
+
+It preserves and restores the original window name and `automatic-rename` setting.
+
+### Install
+
+```bash
+curl -o ~/.claude/hooks/claude-tmux-status.sh \
+  https://raw.githubusercontent.com/aaltw/claude-code-statusline/main/hooks/claude-tmux-status.sh
+chmod +x ~/.claude/hooks/claude-tmux-status.sh
+```
+
+Add hooks to `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "~/.claude/hooks/claude-tmux-status.sh stop"
+      }
+    ],
+    "Notification": [
+      {
+        "type": "command",
+        "command": "~/.claude/hooks/claude-tmux-status.sh notification"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "~/.claude/hooks/claude-tmux-status.sh pretooluse"
+      }
+    ]
+  }
+}
+```
+
+## Requirements
+
+- [Nerd Fonts](https://www.nerdfonts.com/) in your terminal (powerline arrows + `󰧑` icon)
+- `git` (optional, for the branch segment)
+- **Go version**: Go 1.21+ (build only)
+- **Bash version**: `jq`
+
 ## Theme
 
-Colors are hardcoded to [Catppuccin Mocha](https://github.com/catppuccin/catppuccin). The palette is defined at the top of the script as `R;G;B` values, so swapping to another flavour or theme is straightforward.
+Colors use [Catppuccin Mocha](https://github.com/catppuccin/catppuccin). The palette is defined at the top of each implementation, making it easy to swap to another flavour.
 
 | Segment       | Color   | Hex       |
 |---------------|---------|-----------|
@@ -61,4 +156,4 @@ Colors are hardcoded to [Catppuccin Mocha](https://github.com/catppuccin/catppuc
 | Bar (high)    | Red     | `#f38ba8` |
 | Compact warn  | Red     | `#f38ba8` |
 | Git branch    | Pink    | `#f5c2e7` |
-| CWD           | Mauve   | `#cba6f7` |
+| Lines changed | Green/Red | `#a6e3a1` / `#f38ba8` |
