@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
-	"time"
 )
 
 // ── Colors ──────────────────────────────────────────────────────────────────
@@ -29,41 +27,6 @@ var (
 	pink      = CatppuccinMocha.Pink
 	teal      = CatppuccinMocha.Teal
 )
-
-
-func writeMonitorBridge(input StatusInput) {
-	if input.SessionID == "" {
-		return
-	}
-	bridgePath := filepath.Join(os.TempDir(), "claude-monitor-"+input.SessionID+".json")
-	cacheT := input.ContextWindow.CurrentUsage.CacheReadInputTokens + input.ContextWindow.CurrentUsage.CacheCreationInputTokens
-	_ = cacheT
-	bridgeData, _ := json.Marshal(map[string]any{
-		"session_id": input.SessionID,
-		"timestamp":  time.Now().Unix(),
-		"rate_limits": map[string]any{
-			"five_hour": map[string]any{
-				"used_percentage": input.RateLimits.FiveHour.UsedPercentage,
-				"resets_at":       input.RateLimits.FiveHour.ResetsAt,
-			},
-			"seven_day": map[string]any{
-				"used_percentage": input.RateLimits.SevenDay.UsedPercentage,
-				"resets_at":       input.RateLimits.SevenDay.ResetsAt,
-			},
-		},
-		"tokens": map[string]any{
-			"input":          input.ContextWindow.CurrentUsage.InputTokens,
-			"output":         input.ContextWindow.CurrentUsage.OutputTokens,
-			"cache_read":     input.ContextWindow.CurrentUsage.CacheReadInputTokens,
-			"cache_creation": input.ContextWindow.CurrentUsage.CacheCreationInputTokens,
-			"total_input":    input.ContextWindow.TotalInputTokens,
-			"total_output":   input.ContextWindow.TotalOutputTokens,
-		},
-		"model": input.Model.DisplayName,
-		"cwd":   input.Cwd,
-	})
-	_ = os.WriteFile(bridgePath, bridgeData, 0644)
-}
 
 // ── Main ────────────────────────────────────────────────────────────────────
 
@@ -213,16 +176,7 @@ func main() {
 
 	// Write context metrics bridge file for the context-monitor PostToolUse hook.
 	// The hook reads this to inject agent-facing warnings when context is low.
-	if input.SessionID != "" {
-		bridgePath := filepath.Join(os.TempDir(), "claude-ctx-"+input.SessionID+".json")
-		bridgeData, _ := json.Marshal(map[string]any{
-			"session_id":           input.SessionID,
-			"remaining_percentage": input.ContextWindow.RemainingPercentage,
-			"used_pct":             pct,
-			"timestamp":            time.Now().Unix(),
-		})
-		_ = os.WriteFile(bridgePath, bridgeData, 0644)
-	}
+	writeCtxBridge(input, pct)
 
 	writeMonitorBridge(input)
 }
