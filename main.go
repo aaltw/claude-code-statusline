@@ -13,35 +13,30 @@ import (
 	"unicode/utf8"
 )
 
-// ── Colors (Catppuccin Mocha) ───────────────────────────────────────────────
-
-type Color struct{ R, G, B int }
-
-func (c Color) FG() string { return fmt.Sprintf("\033[38;2;%d;%d;%dm", c.R, c.G, c.B) }
-func (c Color) BG() string { return fmt.Sprintf("\033[48;2;%d;%d;%dm", c.R, c.G, c.B) }
+// ── Colors ──────────────────────────────────────────────────────────────────
+// Color type, palette, and reset constant are defined in color.go
 
 var (
-	base      = Color{30, 30, 46}
-	surface0  = Color{49, 50, 68}
-	surface1  = Color{69, 71, 90}
-	blue      = Color{137, 180, 250}
-	green     = Color{166, 227, 161}
-	green80   = Color{133, 182, 129}
-	greenDim  = Color{83, 113, 80}
-	yellow    = Color{249, 226, 175}
-	yellow80  = Color{199, 181, 140}
-	yellowDim = Color{124, 113, 87}
-	red       = Color{243, 139, 168}
-	red80     = Color{194, 111, 134}
-	redDim    = Color{121, 69, 84}
-	pink      = Color{245, 194, 231}
-	teal      = Color{148, 226, 213}
+	base      = CatppuccinMocha.Base
+	surface0  = CatppuccinMocha.Surface0
+	surface1  = CatppuccinMocha.Surface1
+	blue      = CatppuccinMocha.Blue
+	green     = CatppuccinMocha.Green
+	green80   = CatppuccinMocha.Green80
+	greenDim  = CatppuccinMocha.GreenDim
+	yellow    = CatppuccinMocha.Yellow
+	yellow80  = CatppuccinMocha.Yellow80
+	yellowDim = CatppuccinMocha.YellowDim
+	red       = CatppuccinMocha.Red
+	red80     = CatppuccinMocha.Red80
+	redDim    = CatppuccinMocha.RedDim
+	pink      = CatppuccinMocha.Pink
+	teal      = CatppuccinMocha.Teal
 )
 
 const (
-	sepR  = "\ue0b0" // Powerline right arrow
-	sepL  = "\ue0b2" // Powerline left arrow
-	reset = "\033[0m"
+	sepR = "\ue0b0" // Powerline right arrow
+	sepL = "\ue0b2" // Powerline left arrow
 )
 
 // ── Segments ────────────────────────────────────────────────────────────────
