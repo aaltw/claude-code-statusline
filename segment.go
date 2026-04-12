@@ -16,12 +16,24 @@ func renderLeft(segs []Segment, theme Theme, b *strings.Builder) {
 		b.WriteString(s.Text)
 		if i+1 < len(segs) {
 			b.WriteString(reset)
-			b.WriteString(s.BG.FG())
-			b.WriteString(segs[i+1].BG.BG())
+			if theme.InvertSep {
+				b.WriteString(segs[i+1].BG.FG())
+				b.WriteString(s.BG.BG())
+			} else {
+				b.WriteString(s.BG.FG())
+				b.WriteString(segs[i+1].BG.BG())
+			}
 			b.WriteString(theme.SepRight)
 		} else {
+			// Trailing edge: no next segment. For inverted glyphs the filled
+			// area is on the right, so set fg=base to blend with the terminal.
 			b.WriteString(reset)
-			b.WriteString(s.BG.FG())
+			if theme.InvertSep {
+				b.WriteString(theme.Colors.Base.FG())
+				b.WriteString(s.BG.BG())
+			} else {
+				b.WriteString(s.BG.FG())
+			}
 			b.WriteString(theme.SepRight)
 			b.WriteString(reset)
 		}
@@ -31,8 +43,14 @@ func renderLeft(segs []Segment, theme Theme, b *strings.Builder) {
 func renderRight(segs []Segment, theme Theme, b *strings.Builder) {
 	for i, s := range segs {
 		if i == 0 {
+			// Leading edge: no previous segment. Mirror of the trailing edge logic.
 			b.WriteString(reset)
-			b.WriteString(s.BG.FG())
+			if theme.InvertSep {
+				b.WriteString(theme.Colors.Base.FG())
+				b.WriteString(s.BG.BG())
+			} else {
+				b.WriteString(s.BG.FG())
+			}
 			b.WriteString(theme.SepLeft)
 		} else if s.NoSep {
 			// intentionally no separator
@@ -41,8 +59,13 @@ func renderRight(segs []Segment, theme Theme, b *strings.Builder) {
 			if s.SepColor != nil {
 				sepFG = *s.SepColor
 			}
-			b.WriteString(sepFG.FG())
-			b.WriteString(segs[i-1].BG.BG())
+			if theme.InvertSep {
+				b.WriteString(segs[i-1].BG.FG())
+				b.WriteString(sepFG.BG())
+			} else {
+				b.WriteString(sepFG.FG())
+				b.WriteString(segs[i-1].BG.BG())
+			}
 			b.WriteString(theme.SepLeft)
 		}
 		b.WriteString(s.BG.BG())

@@ -71,6 +71,14 @@ func main() {
 		for range filled {
 			barStr.WriteString(barFill.FG() + barDim.BG() + "█")
 		}
+		if filled > 0 && filled < 10 {
+			// For inverted themes SepRight points /, so use SepLeft (\) instead.
+			sep := theme.SepRight
+			if theme.InvertSep {
+				sep = theme.SepLeft
+			}
+			barStr.WriteString(barFill.FG() + barDim.BG() + sep)
+		}
 		for range 10 - filled {
 			barStr.WriteString(barDim.FG() + barDim.BG() + "▒")
 		}
