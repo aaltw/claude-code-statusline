@@ -18,7 +18,7 @@ type GitInfo struct {
 
 func gitCachePath(sessionID string) string {
 	if sessionID != "" {
-		return "/tmp/claude-statusline-git-" + sessionID
+		return "/tmp/claude-statusline-git-" + safeID(sessionID)
 	}
 	return "/tmp/claude-statusline-git-cache"
 }
@@ -70,5 +70,5 @@ func getGitInfo(cwd, sessionID string) GitInfo {
 
 func writeGitCache(gi GitInfo, cachePath string) {
 	data := fmt.Sprintf("%s\n%s\n%d\n%d\n", gi.Branch, gi.Dirty, gi.Ahead, gi.Behind)
-	_ = os.WriteFile(cachePath, []byte(data), 0644)
+	_ = os.WriteFile(cachePath, []byte(data), 0600)
 }
