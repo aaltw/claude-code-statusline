@@ -34,60 +34,6 @@ var (
 	teal      = CatppuccinMocha.Teal
 )
 
-const (
-	sepR = "\ue0b0" // Powerline right arrow
-	sepL = "\ue0b2" // Powerline left arrow
-)
-
-// ── Segments ────────────────────────────────────────────────────────────────
-
-type Segment struct {
-	BG       Color
-	Text     string
-	NoSep    bool   // join without separator
-	SepColor *Color // override separator fg color (defaults to BG)
-}
-
-func renderLeft(segs []Segment, b *strings.Builder) {
-	for i, s := range segs {
-		b.WriteString(s.BG.BG())
-		b.WriteString(s.Text)
-		if i+1 < len(segs) {
-			b.WriteString(reset)
-			b.WriteString(s.BG.FG())
-			b.WriteString(segs[i+1].BG.BG())
-			b.WriteString(sepR)
-		} else {
-			b.WriteString(reset)
-			b.WriteString(s.BG.FG())
-			b.WriteString(sepR)
-			b.WriteString(reset)
-		}
-	}
-}
-
-func renderRight(segs []Segment, b *strings.Builder) {
-	for i, s := range segs {
-		if i == 0 {
-			b.WriteString(reset)
-			b.WriteString(s.BG.FG())
-			b.WriteString(sepL)
-		} else if s.NoSep {
-			// continue without separator
-		} else {
-			sepFG := s.BG
-			if s.SepColor != nil {
-				sepFG = *s.SepColor
-			}
-			b.WriteString(sepFG.FG())
-			b.WriteString(segs[i-1].BG.BG())
-			b.WriteString(sepL)
-		}
-		b.WriteString(s.BG.BG())
-		b.WriteString(s.Text)
-	}
-	b.WriteString(reset)
-}
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -105,14 +51,6 @@ func visibleWidth(s string) int {
 	return utf8.RuneCountInString(stripped)
 }
 
-func segmentsWidth(segs []Segment) int {
-	w := 0
-	for _, s := range segs {
-		w += visibleWidth(s.Text)
-	}
-	w += len(segs) // separators
-	return w
-}
 
 func termWidth() int {
 	if cols := os.Getenv("COLUMNS"); cols != "" {
@@ -246,6 +184,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	theme := activeTheme()
+
 	// ── Model segment ───────────────────────────────────────────────────────
 	shortModel := "Claude"
 	if input.Model.DisplayName != "" {
@@ -356,18 +296,18 @@ func main() {
 	if leftW+rightW+2 <= tw {
 		// Single line
 		if len(leftSegs) > 0 {
-			renderLeft(leftSegs, &out)
+			renderLeft(leftSegs, theme, &out)
 		}
 		gap := tw - leftW - rightW
 		if gap < 1 {
 			gap = 1
 		}
 		out.WriteString(strings.Repeat(" ", gap))
-		renderRight(rightSegs, &out)
+		renderRight(rightSegs, theme, &out)
 	} else {
 		// Two lines
 		if len(leftSegs) > 0 {
-			renderLeft(leftSegs, &out)
+			renderLeft(leftSegs, theme, &out)
 		}
 		out.WriteString("\n")
 		gap := tw - rightW
@@ -375,7 +315,7 @@ func main() {
 			gap = 0
 		}
 		out.WriteString(strings.Repeat(" ", gap))
-		renderRight(rightSegs, &out)
+		renderRight(rightSegs, theme, &out)
 	}
 	out.WriteString("\n")
 
