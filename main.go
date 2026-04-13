@@ -28,15 +28,64 @@ func main() {
 	}
 
 	// ── Tokens segment ───────────────────────────────────────────────────────
-	cacheT := input.ContextWindow.CurrentUsage.CacheReadInputTokens +
-		input.ContextWindow.CurrentUsage.CacheCreationInputTokens
+	cu := input.ContextWindow.CurrentUsage
+	cacheT := cu.CacheReadInputTokens + cu.CacheCreationInputTokens
 	tokensSeg := Segment{
 		BG: p.Surface0,
-		Text: p.Green.FG() + " ↑" + fmtTokens(input.ContextWindow.CurrentUsage.InputTokens) +
+		Text: p.Green.FG() + " ↑" + fmtTokens(cu.InputTokens) +
 			"/" + fmtTokens(input.ContextWindow.TotalInputTokens) + " " +
-			p.Yellow.FG() + "↓" + fmtTokens(input.ContextWindow.CurrentUsage.OutputTokens) +
+			p.Yellow.FG() + "↓" + fmtTokens(cu.OutputTokens) +
 			"/" + fmtTokens(input.ContextWindow.TotalOutputTokens) + " " +
 			p.Teal.FG() + "~" + fmtTokens(cacheT) + " ",
+	}
+
+	// ── Cache efficiency segment ──────────────────────────────────────────────
+	// Enabled via STATUSLINE_CACHE_EFFICIENCY=1.
+	// Session-wide cache hit ratio accumulated across all turns in this session.
+	// High ratio = cache working well; low = wasteful fresh sends.
+	acc := updateCacheAccum(input)
+	sessionTotal := acc.SessionInput + acc.SessionCacheRead + acc.SessionCacheCreate
+	var cacheSeg *Segment
+	if os.Getenv("STATUSLINE_CACHE_EFFICIENCY") == "1" && sessionTotal > 500 {
+		cacheRatio := acc.SessionCacheRead * 100 / sessionTotal
+		var cacheColor Color
+		switch {
+		case cacheRatio >= 50:
+			cacheColor = p.Sapphire
+		case cacheRatio >= 20:
+			cacheColor = p.Yellow
+		default:
+			cacheColor = p.Red
+		}
+		cs := Segment{
+			BG:   p.Surface0,
+			Text: cacheColor.FG() + fmt.Sprintf(" 󰆼 %d%% ", cacheRatio),
+		}
+		cacheSeg = &cs
+	}
+
+	// ── Waste factor segment ─────────────────────────────────────────────────
+	// Enabled via STATUSLINE_CACHE_EFFICIENCY=1 (shares the same flag).
+	// Ratio of recent avg tokens/turn to baseline avg (first 5 turns).
+	// 1.0x = steady; >2x = context bloat is burning significantly more quota.
+	var wasteSeg *Segment
+	if os.Getenv("STATUSLINE_CACHE_EFFICIENCY") == "1" {
+		if wf, ok := acc.wasteFactor(); ok {
+			var wColor Color
+			switch {
+			case wf < 1.5:
+				wColor = p.Peach
+			case wf < 2.5:
+				wColor = p.Yellow
+			default:
+				wColor = p.Red
+			}
+			ws := Segment{
+				BG:   p.Surface1,
+				Text: wColor.FG() + fmt.Sprintf(" ↗ %.1fx ", wf),
+			}
+			wasteSeg = &ws
+		}
 	}
 
 	// ── Context bar ──────────────────────────────────────────────────────────
@@ -122,7 +171,14 @@ func main() {
 	}
 
 	// ── Layout ───────────────────────────────────────────────────────────────
-	rightSegs := []Segment{ctxSeg, barSeg, tokensSeg, modelSeg}
+	rightSegs := []Segment{ctxSeg, barSeg, tokensSeg}
+	if wasteSeg != nil {
+		rightSegs = append(rightSegs, *wasteSeg)
+	}
+	if cacheSeg != nil {
+		rightSegs = append(rightSegs, *cacheSeg)
+	}
+	rightSegs = append(rightSegs, modelSeg)
 	tw := termWidth() - 6
 	leftW := segmentsWidth(leftSegs)
 	rightW := segmentsWidth(rightSegs)

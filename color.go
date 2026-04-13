@@ -28,6 +28,8 @@ type Palette struct {
 	RedDim    Color
 	Pink      Color
 	Teal      Color
+	Peach     Color
+	Sapphire  Color
 }
 
 // CatppuccinMocha is the default palette.
@@ -45,6 +47,8 @@ var CatppuccinMocha = Palette{
 	Red:       Color{243, 139, 168},
 	Red80:     Color{194, 111, 134},
 	RedDim:    Color{121, 69, 84},
-	Pink:      Color{245, 194, 231},
-	Teal:      Color{148, 226, 213},
+	Pink:     Color{245, 194, 231},
+	Teal:     Color{148, 226, 213},
+	Peach:    Color{250, 179, 135},
+	Sapphire: Color{116, 199, 236},
 }
