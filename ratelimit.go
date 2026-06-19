@@ -25,9 +25,13 @@ type rlHistory struct {
 const (
 	rlMinInterval int64 = 60          // don't append more than once a minute unless a value changed
 	rlMaxAge      int64 = 26 * 60 * 60 // prune samples older than ~26h (covers the 7d "today" delta)
-	// slopeThreshold is the burn rate (percent/sec) above which the trend arrow
-	// reads as "burning" rather than idle. ~0.0005 %/s ≈ 1.8%/hour.
+	// slopeThreshold is the 5h burn rate (percent/sec) below which usage reads as
+	// idle/steady rather than actively burning. ~0.0005 %/s ≈ 1.8%/hour.
 	slopeThreshold = 0.0005
+	// fiveHourBurnCeiling is the burn rate that would spend the whole 5h window
+	// evenly over its duration (100% / 5h ≈ 0.00556 %/s ≈ 20%/hour). Above it the
+	// 5h burn rate is "too high" — faster than the window lasts.
+	fiveHourBurnCeiling = 100.0 / (5 * 60 * 60)
 )
 
 // rlPick selects (used_percentage, resets_at) for one window from a sample.
@@ -149,12 +153,19 @@ func windowColor(p Palette, projected float64) Color {
 	}
 }
 
-// trendArrow returns "↑" when the burn rate is meaningfully positive, else "→".
-func trendArrow(slopePerSec float64) string {
-	if slopePerSec > slopeThreshold {
-		return "↑"
+// burnArrow classifies the 5h burn rate (percent/sec) into a colored trend
+// arrow whose steepness rises with the rate: steady (idle) → green "→",
+// acceptable (up to the full-window pace) → Peach "↗", too high (faster than
+// the window lasts) → red "↑".
+func burnArrow(p Palette, slopePerSec float64) (glyph string, c Color) {
+	switch {
+	case slopePerSec > fiveHourBurnCeiling:
+		return "↑", p.Red
+	case slopePerSec > slopeThreshold:
+		return "↗", p.Peach
+	default:
+		return "→", p.Green
 	}
-	return "→"
 }
 
 // percentPerWorkingDay is the 7d quota a 5-day work-week allows per working day

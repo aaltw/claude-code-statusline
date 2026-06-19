@@ -105,10 +105,12 @@ func main() {
 	if rl := input.RateLimits.FiveHour; rl.ResetsAt > 0 {
 		slope := slopePerSec(hist, pickFive, 20*60)
 		projected := projectedAtReset(rl.UsedPercentage, slope, rl.ResetsAt, nowSec)
-		col := windowColor(p, projected)
+		pctCol := windowColor(p, projected)
+		arrow, arrowCol := burnArrow(p, slope)
 		s := Segment{
-			BG:   p.Surface0,
-			Text: col.FG() + fmt.Sprintf(" 5h %d%% %s ", int(rl.UsedPercentage), trendArrow(slope)),
+			BG: p.Surface0,
+			Text: pctCol.FG() + fmt.Sprintf(" 5h %d%% ", int(rl.UsedPercentage)) +
+				arrowCol.FG() + arrow + " ",
 		}
 		fiveHourSeg = &s
 	}
