@@ -113,15 +113,11 @@ func main() {
 		fiveHourSeg = &s
 	}
 	if rl := input.RateLimits.SevenDay; rl.ResetsAt > 0 {
-		slope := slopePerSec(hist, pickSeven, 60*60)
-		projected := projectedAtReset(rl.UsedPercentage, slope, rl.ResetsAt, nowSec)
-		weekCol := windowColor(p, projected)
-		today := todayUsage(hist, rl.UsedPercentage, rl.ResetsAt, now)
-		todayCol := todayColor(p, today)
+		budget := workingDayBudget(rl.ResetsAt, now)
+		col := budgetColor(p, rl.UsedPercentage, budget)
 		s := Segment{
-			BG: p.Surface1,
-			Text: " 7d " + todayCol.FG() + fmt.Sprintf("%d%%", int(today)) +
-				" / " + weekCol.FG() + fmt.Sprintf("%d%% %s ", int(rl.UsedPercentage), trendArrow(slope)),
+			BG:   p.Surface1,
+			Text: col.FG() + fmt.Sprintf(" 7d %d%%/%d%% ", int(rl.UsedPercentage), int(budget)),
 		}
 		sevenDaySeg = &s
 	}

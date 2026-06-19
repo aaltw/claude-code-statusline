@@ -33,8 +33,7 @@ const (
 // rlPick selects (used_percentage, resets_at) for one window from a sample.
 type rlPick func(rlSample) (used, reset float64)
 
-func pickFive(s rlSample) (float64, float64)  { return s.FiveH, s.FiveReset }
-func pickSeven(s rlSample) (float64, float64) { return s.SevenD, s.SevenReset }
+func pickFive(s rlSample) (float64, float64) { return s.FiveH, s.FiveReset }
 
 // rateHistoryPath is the single account-global sample store. Rate limits are
 // account-wide, not per-session, so there is no session id in the filename.
@@ -150,19 +149,6 @@ func windowColor(p Palette, projected float64) Color {
 	}
 }
 
-// todayColor maps the 7d "today" usage to the per-working-day budget (20%/day):
-// green below 18, Peach 18–20, red above 20.
-func todayColor(p Palette, today float64) Color {
-	switch {
-	case today > 20:
-		return p.Red
-	case today >= 18:
-		return p.Peach
-	default:
-		return p.Green
-	}
-}
-
 // trendArrow returns "↑" when the burn rate is meaningfully positive, else "→".
 func trendArrow(slopePerSec float64) string {
 	if slopePerSec > slopeThreshold {
@@ -171,22 +157,52 @@ func trendArrow(slopePerSec float64) string {
 	return "→"
 }
 
-// todayUsage returns how much of the 7d quota was consumed since local midnight:
-// usedNow minus the 7d value of the earliest sample at/after midnight that still
-// belongs to the current window. Returns 0 when no such sample exists yet.
-func todayUsage(hist rlHistory, usedNow, resetNow float64, now time.Time) float64 {
-	midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
-	for _, s := range hist.Samples {
-		if s.T < midnight {
-			continue
+// percentPerWorkingDay is the 7d quota a 5-day work-week allows per working day
+// (100% / 5 days = 20%). Cumulated across the window's working days it forms the
+// "budget" you're allowed by today.
+const percentPerWorkingDay = 20.0
+
+// workingDayBudget returns the cumulative 7d quota you're allowed to have spent
+// by the end of today: percentPerWorkingDay times the number of working days
+// (Mon–Fri) from the window's start through today, capped at 100%. The window
+// starts 7 days before resetsAt; any 7-day span holds exactly 5 weekdays, so a
+// full window budgets to 100%.
+func workingDayBudget(resetsAt float64, now time.Time) float64 {
+	loc := now.Location()
+	windowStart := time.Unix(int64(resetsAt), 0).In(loc).AddDate(0, 0, -7)
+	day := time.Date(windowStart.Year(), windowStart.Month(), windowStart.Day(), 0, 0, 0, 0, loc)
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+
+	workingDays := 0
+	for !day.After(today) {
+		if wd := day.Weekday(); wd != time.Saturday && wd != time.Sunday {
+			workingDays++
 		}
-		if s.SevenReset != resetNow {
-			continue // different window
-		}
-		if s.SevenD > usedNow {
-			continue // value dropped → window boundary
-		}
-		return usedNow - s.SevenD
+		day = day.AddDate(0, 0, 1)
 	}
-	return 0
+	budget := float64(workingDays) * percentPerWorkingDay
+	if budget > 100 {
+		budget = 100
+	}
+	return budget
+}
+
+// budgetColor compares 7d usage against the working-day budget allowed by today:
+// green below 90% of budget, Peach 90–100%, red at/over budget (ahead of plan).
+// When the budget is 0 (reset day / weekend start) any usage is over plan → red.
+func budgetColor(p Palette, used, budget float64) Color {
+	if budget <= 0 {
+		if used > 0 {
+			return p.Red
+		}
+		return p.Green
+	}
+	switch ratio := used / budget * 100; {
+	case ratio >= 100:
+		return p.Red
+	case ratio >= 90:
+		return p.Peach
+	default:
+		return p.Green
+	}
 }

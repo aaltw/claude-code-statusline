@@ -39,7 +39,7 @@ Single-package Go binary (no external dependencies, Go 1.22+) that reads a JSON 
 | `git.go` | `GitInfo`, `getGitInfo` (5-second file cache), `writeGitCache` |
 | `layout.go` | `fmtTokens`, `visibleWidth`, `termWidth` |
 | `bridge.go` | `writeMonitorBridge`, `writeCtxBridge`, `updateCacheAccum` |
-| `ratelimit.go` | 5h/7d burn-rate sampling + projection: `updateRateHistory` (account-global history in `$TMPDIR/claude-ratelimit-history.json`), `slopePerSec`, `projectedAtReset`, `windowColor`, `todayColor`, `trendArrow`, `todayUsage` |
+| `ratelimit.go` | 5h/7d sampling + projection: `updateRateHistory` (account-global history in `$TMPDIR/claude-ratelimit-history.json`), `slopePerSec`, `projectedAtReset`, `windowColor`, `trendArrow` (5h); `workingDayBudget`, `budgetColor` (7d) |
 
 ### Data flow
 
@@ -66,10 +66,15 @@ Single-package Go binary (no external dependencies, Go 1.22+) that reads a JSON 
 ### Rate-limit windows (5h / 7d)
 
 Rendered automatically when Claude Code passes `rate_limits` (`resets_at > 0`); hidden otherwise.
-Color reflects *projected* usage at reset, extrapolated from the recent burn-rate slope
-(`ratelimit.go`, persisted history): green < 90%, Peach 90–100%, red ≥ 100% (will exhaust before
-reset). Trend arrow: `↑` burning, `→` idle. The 7d segment shows `today% / week%`; the **today%**
-is colored against a 20%/working-day budget (5-day week): green < 18%, Peach 18–20%, red > 20%.
+
+**5h** (`5h NN% →`) — colored by *projected* usage at reset, extrapolated from the recent
+burn-rate slope (`ratelimit.go`, persisted history): green < 90%, Peach 90–100%, red ≥ 100%
+(will exhaust before reset). Trend arrow: `↑` burning, `→` idle.
+
+**7d** (`7d used%/budget%`) — colored against a working-day pace budget. A 5-day work-week
+allows 20%/working-day, so the cumulative budget you're "allowed" by today is 20% × (Mon–Fri days
+from the window's start through today, capped at 100%). Color is `used / budget`: green < 90% of
+budget, Peach 90–100%, red ≥ 100% (at/over the plan). No trend arrow.
 
 ### Env flags
 
