@@ -38,7 +38,8 @@ Single-package Go binary (no external dependencies, Go 1.22+) that reads a JSON 
 | `segment.go` | `Segment` struct, `renderLeft`, `renderRight`, `segmentsWidth` |
 | `git.go` | `GitInfo`, `getGitInfo` (5-second file cache), `writeGitCache` |
 | `layout.go` | `fmtTokens`, `visibleWidth`, `termWidth` |
-| `bridge.go` | `writeMonitorBridge`, `writeCtxBridge` |
+| `bridge.go` | `writeMonitorBridge`, `writeCtxBridge`, `updateCacheAccum` |
+| `ratelimit.go` | 5h/7d burn-rate sampling + projection: `updateRateHistory` (account-global history in `$TMPDIR/claude-ratelimit-history.json`), `slopePerSec`, `projectedAtReset`, `windowColor`, `todayColor`, `trendArrow`, `todayUsage` |
 
 ### Data flow
 
@@ -61,6 +62,21 @@ Single-package Go binary (no external dependencies, Go 1.22+) that reads a JSON 
 - Yellow: 70–89% used
 - Red: ≥ 90% used
 - COMPACT warning shown on left side at ≥ 85%
+
+### Rate-limit windows (5h / 7d)
+
+Rendered automatically when Claude Code passes `rate_limits` (`resets_at > 0`); hidden otherwise.
+Color reflects *projected* usage at reset, extrapolated from the recent burn-rate slope
+(`ratelimit.go`, persisted history): green < 90%, Peach 90–100%, red ≥ 100% (will exhaust before
+reset). Trend arrow: `↑` burning, `→` idle. The 7d segment shows `today% / week%`; the **today%**
+is colored against a 20%/working-day budget (5-day week): green < 18%, Peach 18–20%, red > 20%.
+
+### Env flags
+
+- `STATUSLINE_THEME` — separator/palette theme (see above)
+- `STATUSLINE_CACHE_EFFICIENCY=1` — enable the `󰆼 %` cache-hit and `↗ Nx` waste meters
+- `STATUSLINE_TOKEN_COUNTERS=1` — re-enable the `↑in/total ↓out/total` token counters (off by
+  default; the `~cache` figure always shows)
 
 ### Git integration
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -28,15 +29,20 @@ func main() {
 	}
 
 	// ── Tokens segment ───────────────────────────────────────────────────────
+	// The ~cache figure always renders; the ↑in/total ↓out/total counters are
+	// opt-in via STATUSLINE_TOKEN_COUNTERS=1 (off by default).
 	cu := input.ContextWindow.CurrentUsage
 	cacheT := cu.CacheReadInputTokens + cu.CacheCreationInputTokens
-	tokensSeg := Segment{
-		BG: p.Surface0,
-		Text: p.Green.FG() + " ↑" + fmtTokens(cu.InputTokens) +
+	counters := ""
+	if os.Getenv("STATUSLINE_TOKEN_COUNTERS") == "1" {
+		counters = p.Green.FG() + "↑" + fmtTokens(cu.InputTokens) +
 			"/" + fmtTokens(input.ContextWindow.TotalInputTokens) + " " +
 			p.Yellow.FG() + "↓" + fmtTokens(cu.OutputTokens) +
-			"/" + fmtTokens(input.ContextWindow.TotalOutputTokens) + " " +
-			p.Teal.FG() + "~" + fmtTokens(cacheT) + " ",
+			"/" + fmtTokens(input.ContextWindow.TotalOutputTokens) + " "
+	}
+	tokensSeg := Segment{
+		BG:   p.Surface0,
+		Text: " " + counters + p.Teal.FG() + "~" + fmtTokens(cacheT) + " ",
 	}
 
 	// ── Cache efficiency segment ──────────────────────────────────────────────
@@ -86,6 +92,38 @@ func main() {
 			}
 			wasteSeg = &ws
 		}
+	}
+
+	// ── Rate-limit window segments (5h / 7d) ─────────────────────────────────
+	// Burn-rate colored from a persisted sample history. Hidden when Claude Code
+	// passes no rate-limit data (resets_at == 0).
+	hist := updateRateHistory(input)
+	now := time.Now()
+	nowSec := float64(now.Unix())
+
+	var fiveHourSeg, sevenDaySeg *Segment
+	if rl := input.RateLimits.FiveHour; rl.ResetsAt > 0 {
+		slope := slopePerSec(hist, pickFive, 20*60)
+		projected := projectedAtReset(rl.UsedPercentage, slope, rl.ResetsAt, nowSec)
+		col := windowColor(p, projected)
+		s := Segment{
+			BG:   p.Surface0,
+			Text: col.FG() + fmt.Sprintf(" 5h %d%% %s ", int(rl.UsedPercentage), trendArrow(slope)),
+		}
+		fiveHourSeg = &s
+	}
+	if rl := input.RateLimits.SevenDay; rl.ResetsAt > 0 {
+		slope := slopePerSec(hist, pickSeven, 60*60)
+		projected := projectedAtReset(rl.UsedPercentage, slope, rl.ResetsAt, nowSec)
+		weekCol := windowColor(p, projected)
+		today := todayUsage(hist, rl.UsedPercentage, rl.ResetsAt, now)
+		todayCol := todayColor(p, today)
+		s := Segment{
+			BG: p.Surface1,
+			Text: " 7d " + todayCol.FG() + fmt.Sprintf("%d%%", int(today)) +
+				" / " + weekCol.FG() + fmt.Sprintf("%d%% %s ", int(rl.UsedPercentage), trendArrow(slope)),
+		}
+		sevenDaySeg = &s
 	}
 
 	// ── Context bar ──────────────────────────────────────────────────────────
@@ -171,7 +209,14 @@ func main() {
 	}
 
 	// ── Layout ───────────────────────────────────────────────────────────────
-	rightSegs := []Segment{ctxSeg, barSeg, tokensSeg}
+	rightSegs := []Segment{ctxSeg, barSeg}
+	if fiveHourSeg != nil {
+		rightSegs = append(rightSegs, *fiveHourSeg)
+	}
+	if sevenDaySeg != nil {
+		rightSegs = append(rightSegs, *sevenDaySeg)
+	}
+	rightSegs = append(rightSegs, tokensSeg)
 	if wasteSeg != nil {
 		rightSegs = append(rightSegs, *wasteSeg)
 	}
