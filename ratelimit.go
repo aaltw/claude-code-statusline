@@ -168,6 +168,22 @@ func burnArrow(p Palette, slopePerSec float64) (glyph string, c Color) {
 	}
 }
 
+// fiveHourBudget returns the even-pace 5h quota you're "allowed" to have spent
+// by now: the fraction of the 5-hour window elapsed, as a percentage (0–100).
+// The window starts 5h before resetsAt; spending 100% evenly across it lands you
+// exactly here right now. Mirrors workingDayBudget for the 7d window.
+func fiveHourBudget(resetsAt, now float64) float64 {
+	const windowSec = 5 * 60 * 60
+	pct := (now - (resetsAt - windowSec)) / windowSec * 100
+	if pct < 0 {
+		return 0
+	}
+	if pct > 100 {
+		return 100
+	}
+	return pct
+}
+
 // percentPerWorkingDay is the 7d quota a 5-day work-week allows per working day
 // (100% / 5 days = 20%). Cumulated across the window's working days it forms the
 // "budget" you're allowed by today.

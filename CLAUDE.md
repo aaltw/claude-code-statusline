@@ -67,9 +67,11 @@ Single-package Go binary (no external dependencies, Go 1.22+) that reads a JSON 
 
 Rendered automatically when Claude Code passes `rate_limits` (`resets_at > 0`); hidden otherwise.
 
-**5h** (`5h NN% ↗`) — the `NN%` is colored by *projected* usage at reset, extrapolated from the
-recent burn-rate slope (`ratelimit.go`, persisted history): green < 90%, Peach 90–100%, red ≥ 100%
-(will exhaust before reset). The **arrow** is colored independently by the burn *rate* itself
+**5h** (`5h used%/budget% ↗`) — the `used%` is colored by *projected* usage at reset, extrapolated
+from the recent burn-rate slope (`ratelimit.go`, persisted history): green < 90%, Peach 90–100%,
+red ≥ 100% (will exhaust before reset). The `budget%` is the even-pace allowance: the fraction of
+the 5-hour window elapsed (spending 100% evenly across 5h lands you exactly there now), so
+`used < budget` means you're under the even burn line. The **arrow** is colored independently by the burn *rate* itself
 (steepness rises with rate): `→` green steady (≤ ~1.8%/h, idle), `↗` Peach acceptable (up to 20%/h,
 the full-window pace), `↑` red too-high (> 20%/h, faster than the window lasts).
 

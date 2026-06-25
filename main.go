@@ -107,9 +107,10 @@ func main() {
 		projected := projectedAtReset(rl.UsedPercentage, slope, rl.ResetsAt, nowSec)
 		pctCol := windowColor(p, projected)
 		arrow, arrowCol := burnArrow(p, slope)
+		budget := fiveHourBudget(rl.ResetsAt, nowSec)
 		s := Segment{
 			BG: p.Surface0,
-			Text: pctCol.FG() + fmt.Sprintf(" 5h %d%% ", int(rl.UsedPercentage)) +
+			Text: pctCol.FG() + fmt.Sprintf(" 5h %d%%/%d%% ", int(rl.UsedPercentage), int(budget)) +
 				arrowCol.FG() + arrow + " ",
 		}
 		fiveHourSeg = &s
