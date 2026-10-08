@@ -110,7 +110,7 @@ func main() {
 		budget := fiveHourBudget(rl.ResetsAt, nowSec)
 		s := Segment{
 			BG: p.Surface0,
-			Text: pctCol.FG() + fmt.Sprintf(" 5h %d%%/%d%% ", int(rl.UsedPercentage), int(budget)) +
+			Text: pctCol.FG() + fmt.Sprintf(" 󰅐 5h %d%%/%d%% ", int(rl.UsedPercentage), int(budget)) +
 				arrowCol.FG() + arrow + " ",
 		}
 		fiveHourSeg = &s
@@ -120,7 +120,7 @@ func main() {
 		col := budgetColor(p, rl.UsedPercentage, budget)
 		s := Segment{
 			BG:   p.Surface1,
-			Text: col.FG() + fmt.Sprintf(" 7d %d%%/%d%% ", int(rl.UsedPercentage), int(budget)),
+			Text: col.FG() + fmt.Sprintf(" 󰃭 7d %d%%/%d%% ", int(rl.UsedPercentage), int(budget)),
 		}
 		sevenDaySeg = &s
 	}
