@@ -209,18 +209,22 @@ func main() {
 
 	// ── Layout ───────────────────────────────────────────────────────────────
 	rightSegs := []Segment{ctxSeg, barSeg}
-	if fiveHourSeg != nil {
-		rightSegs = append(rightSegs, *fiveHourSeg)
-	}
-	if sevenDaySeg != nil {
-		rightSegs = append(rightSegs, *sevenDaySeg)
-	}
-	rightSegs = append(rightSegs, tokensSeg)
-	if wasteSeg != nil {
-		rightSegs = append(rightSegs, *wasteSeg)
-	}
-	if cacheSeg != nil {
-		rightSegs = append(rightSegs, *cacheSeg)
+	// STATUSLINE_HIDE_USAGE=1 hides the usage block (5h, 7d, tokens, waste,
+	// cache ratio) from the output; rate history and cache accumulator still update.
+	if os.Getenv("STATUSLINE_HIDE_USAGE") != "1" {
+		if fiveHourSeg != nil {
+			rightSegs = append(rightSegs, *fiveHourSeg)
+		}
+		if sevenDaySeg != nil {
+			rightSegs = append(rightSegs, *sevenDaySeg)
+		}
+		rightSegs = append(rightSegs, tokensSeg)
+		if wasteSeg != nil {
+			rightSegs = append(rightSegs, *wasteSeg)
+		}
+		if cacheSeg != nil {
+			rightSegs = append(rightSegs, *cacheSeg)
+		}
 	}
 	rightSegs = append(rightSegs, modelSeg)
 	tw := termWidth() - 6
