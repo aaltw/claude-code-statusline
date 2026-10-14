@@ -49,7 +49,7 @@ Single-package Go binary (no external dependencies, Go 1.22+) that reads a JSON 
 4. **Rendering**: `renderLeft`/`renderRight` in `segment.go` emit Powerline separators from `theme.SepRight`/`theme.SepLeft`.
 5. **Layout**: `termWidth()` checks `$COLUMNS` → tmux → tput → 80. Single-line layout if segments fit; two-line otherwise.
 6. **Bridge files** written to `/tmp/` each render:
-   - `claude-ctx-<sessionID>.json` — context remaining % for a PostToolUse hook
+   - `claude-ctx-<sessionID>.json` — context remaining % for a PostToolUse hook; skipped until the input has a real (non-null) context reading
    - `claude-monitor-<sessionID>.json` — full token/rate-limit metrics
 
 ### Theming

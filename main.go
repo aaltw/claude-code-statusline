@@ -126,7 +126,8 @@ func main() {
 	}
 
 	// ── Context bar ──────────────────────────────────────────────────────────
-	pct := int(input.ContextWindow.UsedPercentage)
+	usedF, _, _ := input.ContextWindow.percentages()
+	pct := int(usedF)
 
 	var ctxLabel string
 	if input.ContextWindow.ContextWindowSize >= 1_000_000 {
@@ -254,6 +255,6 @@ func main() {
 	os.Stdout.WriteString(out.String())
 
 	// ── Bridge files ─────────────────────────────────────────────────────────
-	writeCtxBridge(input, pct)
+	writeCtxBridge(input)
 	writeMonitorBridge(input)
 }
