@@ -24,8 +24,10 @@ type Model struct {
 }
 
 type ContextWindow struct {
-	UsedPercentage      float64      `json:"used_percentage"`
-	RemainingPercentage float64      `json:"remaining_percentage"`
+	// Pointers: nil means Claude Code sent no reading yet (absent or null),
+	// which is different from a real 0.
+	UsedPercentage      *float64     `json:"used_percentage"`
+	RemainingPercentage *float64     `json:"remaining_percentage"`
 	ContextWindowSize   int          `json:"context_window_size"`
 	CurrentUsage        CurrentUsage `json:"current_usage"`
 	TotalInputTokens    int          `json:"total_input_tokens"`
@@ -42,4 +44,18 @@ type CurrentUsage struct {
 type Cost struct {
 	TotalLinesAdded   int `json:"total_lines_added"`
 	TotalLinesRemoved int `json:"total_lines_removed"`
+}
+
+// percentages returns used/remaining context %, deriving whichever is missing
+// from the other. ok is false when the input carries no reading at all.
+func (c ContextWindow) percentages() (used, remaining float64, ok bool) {
+	switch {
+	case c.UsedPercentage != nil && c.RemainingPercentage != nil:
+		return *c.UsedPercentage, *c.RemainingPercentage, true
+	case c.UsedPercentage != nil:
+		return *c.UsedPercentage, 100 - *c.UsedPercentage, true
+	case c.RemainingPercentage != nil:
+		return 100 - *c.RemainingPercentage, *c.RemainingPercentage, true
+	}
+	return 0, 0, false
 }

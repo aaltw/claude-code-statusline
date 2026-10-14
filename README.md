@@ -74,7 +74,7 @@ Catppuccin Mocha palette. Context bar color shifts with usage:
 
 Claude Code pipes a JSON blob to the binary on each statusline refresh. The binary renders an ANSI-colored Powerline statusline to stdout and writes two bridge files to `/tmp/` for use by other hooks:
 
-- `claude-ctx-<session>.json` — context remaining % (used by PostToolUse hooks to warn when context is low)
+- `claude-ctx-<session>.json` — context remaining % (used by PostToolUse hooks to warn when context is low); only written once Claude Code has sent a real context reading
 - `claude-monitor-<session>.json` — full token and rate-limit metrics
 
 Git info is cached per session for 5 seconds to avoid subprocess overhead on every render.

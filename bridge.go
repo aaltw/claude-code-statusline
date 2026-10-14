@@ -123,15 +123,18 @@ func writeMonitorBridge(input StatusInput) {
 	_ = os.WriteFile(bridgePath, bridgeData, 0600)
 }
 
-func writeCtxBridge(input StatusInput, usedPct int) {
-	if input.SessionID == "" {
+// writeCtxBridge writes nothing until the input carries a real context reading,
+// so hooks never see a bogus 0% remaining at session start.
+func writeCtxBridge(input StatusInput) {
+	used, remaining, ok := input.ContextWindow.percentages()
+	if input.SessionID == "" || !ok {
 		return
 	}
 	bridgePath := filepath.Join(os.TempDir(), "claude-ctx-"+safeID(input.SessionID)+".json")
 	bridgeData, _ := json.Marshal(map[string]any{
 		"session_id":           input.SessionID,
-		"remaining_percentage": input.ContextWindow.RemainingPercentage,
-		"used_pct":             usedPct,
+		"remaining_percentage": remaining,
+		"used_pct":             int(used),
 		"timestamp":            time.Now().Unix(),
 	})
 	_ = os.WriteFile(bridgePath, bridgeData, 0600)
